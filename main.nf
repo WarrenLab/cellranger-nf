@@ -28,13 +28,14 @@ if (params.nuclei)
 Channel
     .fromPath(params.sample_sheet)
     .splitCsv(header:true)
-    .into { sampleSheet1; sampleSheet2; sampleSheet3 }
+    .into { sampleSheet1; sampleSheet2; sampleSheet3; sampleSheet4 }
 // one to extract the header from...
 keys = sampleSheet1.first().keySet().value
 // one to get a list of library ids from for the count process...
 sampleSheet2.map { it.library_id }.set { ids }
 // and one to use in the aggregate process
 sampleSheet3.map { tuple(it.library_id, it) }.set { sampleSheetRows }
+sampleSheet4.view()
 
 process cellranger_count {
     publishDir 'molecule_info'
