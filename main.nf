@@ -1,15 +1,10 @@
 #!/usr/bin/env nextflow
 
-/*
- * --------------- Parameters to edit start here. ------------------
- */
-
-// Replace this with the path to a directory containing raw fastq files
+// path to a directory containing raw fastq files
 params.fastqs_dir = '/path/to/fastqs'
 
-// Replace this with the path to the directory containing the CellRanger
-// reference. If you haven't made this yet, see the script
-// 'make_cellranger_reference.sh'
+// path to the directory containing the CellRanger
+// reference
 params.ref_dir = '/path/to/cellranger/ref'
 
 // Replace this with a table of the ID's of the samples to analyze, plus any
@@ -24,16 +19,10 @@ params.ref_dir = '/path/to/cellranger/ref'
 // C6,treatment
 params.sample_sheet = 'samples.csv'
 
-// path to the run_seurat.R script. If it's in your PATH, you can leave it as
-// is; otherwise, set this to explicitly point to its location.
-params.path_to_run_seurat = 'run_seurat.R'
-/*
- * ---------------- Parameters to edit end here. -------------------
- *
- * Once you are done setting the parameters, you can run this pipeline
- * with 'nextflow run cellranger.nf'. A nextflow.config file with your
- * preferred settings should be in the directory where you run it.
- */
+// set the --nuclei argument to include introns for nucelus preps
+additionalArgs = ""
+if (params.nuclei)
+    additionalArgs += " --include-introns"
 
 // read the sample sheet and make three channels from it:
 Channel
@@ -49,7 +38,7 @@ sampleSheet3.map { tuple(it.library_id, it) }.set { sampleSheetRows }
 
 process cellranger_count {
     publishDir 'molecule_info'
-    cpus 24
+    cpus 26
     memory '240 GB'
 
     input:
@@ -66,7 +55,7 @@ process cellranger_count {
         --transcriptome=${params.ref_dir} \
         --localcores=${task.cpus} \
         --localmem=240 \
-        --disable-ui
+        --disable-ui ${additionalArgs}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
     """
 }
@@ -84,7 +73,7 @@ molecule_info.join(sampleSheetRows).map {
 ).set { molecule_info_csv }
 
 process cellranger_aggregate {
-    publishDir 'aggregate'
+    publishDir 'aggregated', mode: 'copy'
     cpus 16
 
     input:
@@ -97,22 +86,3 @@ process cellranger_aggregate {
     cellranger aggr --id=aggregated --csv=molecule_info.csv
     """
 }
-
-process seurat {
-    publishDir 'seurat_out'
-
-    input:
-    file "aggregated/outs" from aggregated
-
-    output:
-    file 'seurat_out' into seurat_out
-
-    """
-    ${params.path_to_run_seurat} \
-        --output-dir seurat_out \
-        --aggregation aggregated/outs/aggregation.csv \
-        aggregated/outs/filtered_feature_bc_matrix
-        
-    """
-}
-
