@@ -35,7 +35,7 @@ keys = sampleSheet1.first().keySet().value
 sampleSheet2.map { it.library_id }.set { ids }
 // and one to use in the aggregate process
 sampleSheet3.map { tuple(it.library_id, it) }.set { sampleSheetRows }
-sampleSheet4.view()
+println(keys)
 
 process cellranger_count {
     publishDir 'molecule_info'
