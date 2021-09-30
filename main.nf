@@ -24,11 +24,14 @@ additionalArgs = ""
 if (params.nuclei)
     additionalArgs += " --include-introns"
 
+fastqs_dir = file(params.fastqs_dir)
+ref_dir = file(params.ref_dir)
+
 // read the sample sheet and make three channels from it:
 Channel
     .fromPath(params.sample_sheet)
     .splitCsv(header:true)
-    .into { sampleSheet1; sampleSheet2; sampleSheet3; sampleSheet4 }
+    .into { sampleSheet1; sampleSheet2; sampleSheet3 }
 // one to extract the header from...
 keys = sampleSheet1.first().keySet().value
 // one to get a list of library ids from for the count process...
@@ -51,9 +54,9 @@ process cellranger_count {
     """
     cellranger count \
         --id=${id} \
-        --fastqs=${params.fastqs_dir} \
+        --fastqs=${fastqs_dir} \
         --sample=${id} \
-        --transcriptome=${params.ref_dir} \
+        --transcriptome=${ref_dir} \
         --localcores=${task.cpus} \
         --localmem=240 \
         --disable-ui ${additionalArgs}
