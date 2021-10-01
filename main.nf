@@ -77,8 +77,8 @@ workflow {
     crCount(sampleSheet.map { it.library_id })
     
     // extract the header from the sample sheet
-    keys = sampleSheet.first().keySet().value
-    keys.view()
+    //keys = sampleSheet.first().keySet().value
+    println sampleSheet.first()
 
 //    // use the sample sheet and the output of the count process to make
 //    // a new sample sheet for the aggregate process
