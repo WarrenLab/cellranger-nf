@@ -73,22 +73,24 @@ workflow {
         .fromPath(params.sample_sheet)
         .splitCsv(header:true)
     sampleSheet.view()
-    // extract the header from the sample sheet
-    keys = sampleSheet.first().keySet().value
     // run the count process on a list of library IDs
     crCount(sampleSheet.map { it.library_id })
+    
+    // extract the header from the sample sheet
+    keys = sampleSheet.first().keySet().value
+    keys.view()
 
-    // use the sample sheet and the output of the count process to make
-    // a new sample sheet for the aggregate process
-    crCount.out.join(sampleSheet.map { tuple(it.library_id, it) }).map {
-        it[2].remove('library_id')
-        values = it[2].values().join(',')
-        return [it[0], it[1], values].join(',')
-    }.collectFile(
-        name: 'molecule_info.csv',
-        newLine: true,
-        seed: "library_id,molecule_h5," + keys.drop(1).join(',')
-    ).set { molecule_info_csv }
-
-    aggregate(molecule_info_csv)
+//    // use the sample sheet and the output of the count process to make
+//    // a new sample sheet for the aggregate process
+//    crCount.out.join(sampleSheet.map { tuple(it.library_id, it) }).map {
+//        it[2].remove('library_id')
+//        values = it[2].values().join(',')
+//        return [it[0], it[1], values].join(',')
+//    }.collectFile(
+//        name: 'molecule_info.csv',
+//        newLine: true,
+//        seed: "library_id,molecule_h5," + keys.drop(1).join(',')
+//    ).set { molecule_info_csv }
+//
+//    aggregate(molecule_info_csv)
 }
