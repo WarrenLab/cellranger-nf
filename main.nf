@@ -72,13 +72,13 @@ workflow {
     sampleSheet = Channel
         .fromPath(params.sample_sheet)
         .splitCsv(header:true)
-    sampleSheet.view()
+    //sampleSheet.view()
     // run the count process on a list of library IDs
     crCount(sampleSheet.map { it.library_id })
     
     // extract the header from the sample sheet
     //keys = sampleSheet.first().keySet().value
-    println sampleSheet.first()
+    println sampleSheet.first().view()
 
 //    // use the sample sheet and the output of the count process to make
 //    // a new sample sheet for the aggregate process
