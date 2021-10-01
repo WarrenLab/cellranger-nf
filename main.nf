@@ -20,6 +20,12 @@ params.ref_dir = '/path/to/cellranger/ref'
 // C6,treatment
 params.sample_sheet = 'samples.csv'
 // set the --nuclei argument to include introns for nucelus preps
+additionalArgs = ""
+if (params.nuclei)
+    additionalArgs += " --include-introns"
+
+fastqs_dir = file(params.fastqs_dir)
+ref_dir = file(params.ref_dir)
 
 process crCount {
     publishDir 'molecule_info'
@@ -61,12 +67,6 @@ process aggregate {
 }
 
 workflow {
-    additionalArgs = ""
-    if (params.nuclei)
-        additionalArgs += " --include-introns"
-    
-    fastqs_dir = file(params.fastqs_dir)
-    ref_dir = file(params.ref_dir)
     
     // read the sample sheet
     sampleSheet = Channel
