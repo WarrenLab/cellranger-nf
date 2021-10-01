@@ -72,7 +72,7 @@ workflow {
     sampleSheet = Channel
         .fromPath(params.sample_sheet)
         .splitCsv(header:true)
-    sampleSheet.println
+    sampleSheet.println()
     // extract the header from the sample sheet
     keys = sampleSheet.first().keySet().value
     // run the count process on a list of library IDs
