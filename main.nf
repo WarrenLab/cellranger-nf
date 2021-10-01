@@ -78,7 +78,7 @@ workflow {
     
     // extract the header from the sample sheet
     //keys = sampleSheet.first().keySet().value
-    println sampleSheet.first().view()
+    sampleSheet.first().keySet().view()
 
 //    // use the sample sheet and the output of the count process to make
 //    // a new sample sheet for the aggregate process
