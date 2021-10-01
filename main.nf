@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+nextflow.enable.dsl = 2
 
 // path to a directory containing raw fastq files
 params.fastqs_dir = '/path/to/fastqs'
@@ -18,38 +19,18 @@ params.ref_dir = '/path/to/cellranger/ref'
 // C5,control
 // C6,treatment
 params.sample_sheet = 'samples.csv'
-
 // set the --nuclei argument to include introns for nucelus preps
-additionalArgs = ""
-if (params.nuclei)
-    additionalArgs += " --include-introns"
 
-fastqs_dir = file(params.fastqs_dir)
-ref_dir = file(params.ref_dir)
-
-// read the sample sheet and make three channels from it:
-Channel
-    .fromPath(params.sample_sheet)
-    .splitCsv(header:true)
-    .into { sampleSheet1; sampleSheet2; sampleSheet3 }
-// one to extract the header from...
-keys = sampleSheet1.first().keySet().value
-// one to get a list of library ids from for the count process...
-sampleSheet2.map { it.library_id }.set { ids }
-// and one to use in the aggregate process
-sampleSheet3.map { tuple(it.library_id, it) }.set { sampleSheetRows }
-println(keys)
-
-process cellranger_count {
+process crCount {
     publishDir 'molecule_info'
     cpus 26
     memory '240 GB'
 
     input:
-    val id from ids
+    val id
 
     output:
-    tuple val(id), file("molecule_info.${id}.h5") into molecule_info
+    tuple val(id), file("molecule_info.${id}.h5")
 
     """
     cellranger count \
@@ -64,19 +45,7 @@ process cellranger_count {
     """
 }
 
-// use the sample sheet and the output of the count process to make
-// a new sample sheet for the aggregate process
-molecule_info.join(sampleSheetRows).map {
-    it[2].remove('library_id')
-    values = it[2].values().join(',')
-    return [it[0], it[1], values].join(',')
-}.collectFile(
-    name: 'molecule_info.csv',
-    newLine: true,
-    seed: "library_id,molecule_h5," + keys.drop(1).join(',')
-).set { molecule_info_csv }
-
-process cellranger_aggregate {
+process aggregate {
     publishDir 'aggregated', mode: 'copy'
     cpus 16
 
@@ -89,4 +58,36 @@ process cellranger_aggregate {
     """
     cellranger aggr --id=aggregated --csv=molecule_info.csv
     """
+}
+
+workflow {
+    additionalArgs = ""
+    if (params.nuclei)
+        additionalArgs += " --include-introns"
+    
+    fastqs_dir = file(params.fastqs_dir)
+    ref_dir = file(params.ref_dir)
+    
+    // read the sample sheet
+    sampleSheet = Channel
+        .fromPath(params.sample_sheet)
+        .splitCsv(header:true)
+    // extract the header from the sample sheet
+    keys = sampleSheet.first().keySet().value
+    // run the count process on a list of library IDs
+    crCount(sampleSheet.map { it.library_id })
+
+    // use the sample sheet and the output of the count process to make
+    // a new sample sheet for the aggregate process
+    crCount.out.join(sampleSheet.map { tuple(it.library_id, it) }).map {
+        it[2].remove('library_id')
+        values = it[2].values().join(',')
+        return [it[0], it[1], values].join(',')
+    }.collectFile(
+        name: 'molecule_info.csv',
+        newLine: true,
+        seed: "library_id,molecule_h5," + keys.drop(1).join(',')
+    ).set { molecule_info_csv }
+
+    aggregate(molecule_info_csv)
 }
