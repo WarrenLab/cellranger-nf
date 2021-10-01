@@ -51,18 +51,6 @@ process crCount {
     """
 }
 
-process makeMoleculeInfoCsv {
-    input:
-    tuple val(id)
-
-    output:
-    file "molecule_info.csv"
-
-    """
-
-    """
-}
-
 process aggregate {
     publishDir 'aggregated', mode: 'copy'
     cpus 16
@@ -79,7 +67,6 @@ process aggregate {
 }
 
 workflow {
-    
     // read the sample sheet
     sampleSheet = Channel
         .fromPath(params.sampleSheet)
