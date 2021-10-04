@@ -10,10 +10,10 @@ params.ref_dir = '/path/to/cellranger/ref'
 
 // Replace this with a table of the ID's of the samples to analyze, plus any
 // additional relevant information about each sample. The sample ID must be
-// the first field, and the header should call this field 'library_id'. For
+// the first field, and the header should call this field 'sample_id'. For
 // example, the first few lines might look like this:
 //
-// library_id,treated
+// sample_id,treated
 // C3,control
 // C4,treatment
 // C5,control
@@ -72,7 +72,7 @@ workflow {
         .fromPath(params.sampleSheet)
         .splitCsv(header:true)
     // run the count process on a list of library IDs
-    crCount(sampleSheet.map { it.library_id })
+    crCount(sampleSheet.map { it.sample_id })
     
     // extract the header from the sample sheet
     def keys
@@ -82,14 +82,14 @@ workflow {
 
     // use the sample sheet and the output of the count process to make
     // a new sample sheet for the aggregate process
-    crCount.out.join(sampleSheet.map { tuple(it.library_id, it) }).map {
-        it[2].remove('library_id')
+    crCount.out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
+        it[2].remove('sample_id')
         values = it[2].values().join(',')
         return [it[0], it[1], values].join(',')
     }.collectFile(
         name: 'molecule_info.csv',
         newLine: true,
-        seed: "library_id,molecule_h5," + keys.join(',')
+        seed: "sample_id,molecule_h5," + keys.join(',')
     ).set { moleculeInfo }
 
     aggregate(moleculeInfo)
