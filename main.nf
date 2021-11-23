@@ -29,8 +29,6 @@ ref_dir = file(params.ref_dir)
 
 process crCount {
     publishDir 'molecule_info'
-    cpus 26
-    memory '240 GB'
 
     input:
     val id
@@ -53,7 +51,6 @@ process crCount {
 
 process aggregate {
     publishDir 'aggregated', mode: 'copy'
-    cpus 16
 
     input:
     file "molecule_info.csv"
