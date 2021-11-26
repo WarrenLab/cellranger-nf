@@ -43,7 +43,7 @@ process crCount {
         --sample=${id} \
         --transcriptome=${ref_dir} \
         --localcores=${task.cpus} \
-        --localmem=${task.memory.toGiga() * 0.9} \
+        --localmem=${(task.memory.toGiga() * 0.9).intValue()} \
         --disable-ui ${additionalArgs}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
     """
