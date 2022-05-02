@@ -34,7 +34,7 @@ process crCount {
     val id
 
     output:
-    tuple val(id), file("molecule_info.${id}.h5")
+    tuple val(id), file("*.${id}.h5")
 
     """
     cellranger count \
@@ -46,6 +46,7 @@ process crCount {
         --localmem=${(task.memory.toGiga() * 0.9).intValue()} \
         --disable-ui ${additionalArgs}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
+    ln -s \$PWD/${id}/outs/raw_feature_bc_matrix.h5 raw_feature_bc_matrix.${id}.h5
     """
 }
 
