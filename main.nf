@@ -24,17 +24,19 @@ additionalArgs = ""
 if (params.nuclei)
     additionalArgs += " --include-introns"
 
+params.cellbender = false
+
 fastqs_dir = file(params.fastqs_dir)
 ref_dir = file(params.ref_dir)
 
 process crCount {
-    publishDir 'molecule_info'
+    publishDir 'molecule_info', mode: 'copy'
 
     input:
     val id
 
     output:
-    tuple val(id), file("*.${id}.h5")
+    tuple val(id), file("*.${id}.*")
 
     """
     cellranger count \
@@ -47,6 +49,8 @@ process crCount {
         --disable-ui ${additionalArgs}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
     ln -s \$PWD/${id}/outs/raw_feature_bc_matrix.h5 raw_feature_bc_matrix.${id}.h5
+    ln -s \$PWD/${id}/outs/web_summary.html web_summary.${id}.html
+    ln -s \$PWD/${id}/outs/metrics_summary.csv metrics_summary.${id}.csv
     """
 }
 
@@ -64,6 +68,42 @@ process aggregate {
     """
 }
 
+process cellBender {
+    publishDir 'cellbender', mode: 'copy'
+
+    input:
+    tuple val(id), file("*.${id}.h5")
+
+    output:
+    file("${id}.cellbender_filtered.h5")
+
+    """
+    cellbender remove-background \
+        --input raw_feature_bc_matrix.${id}.h5 \
+        --output ${id}.cellbender.h5 \
+        --cuda \
+        --expected-cells \$(cut -f1 -d, metrics_summary.${id}.csv | tail -1)
+    """
+}
+
+process makeCellbenderAggregationTable {
+    publishdir 'cellbender', mode: 'copy'
+
+    input:
+    file(sampleSheetCsv)
+    file(allMetricsSummaries)
+
+    output:
+    file("aggregation_table.csv")
+
+    """
+    make_cellbender_aggregation_table.py \
+        ${sampleSheetCsv} \
+        metrics_summary.*.csv \
+        > aggregation_table.csv
+    """
+}
+
 workflow {
     // read the sample sheet
     sampleSheet = Channel
@@ -78,17 +118,25 @@ workflow {
         keys = it.readLine().split(',').drop(1)
     }
 
-    // use the sample sheet and the output of the count process to make
-    // a new sample sheet for the aggregate process
-    crCount.out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
-        it[2].remove('sample_id')
-        values = it[2].values().join(',')
-        return [it[0], it[1], values].join(',')
-    }.collectFile(
-        name: 'molecule_info.csv',
-        newLine: true,
-        seed: "sample_id,molecule_h5," + keys.join(',')
-    ).set { moleculeInfo }
+    if (params.cellbender) {
+        cellBender(crCount.out)
+        makeCellbenderAggregationTable(
+            file(params.sampleSheet),
+            crCount.out.collect { it[1] }
+        )
+    } else {
+        // use the sample sheet and the output of the count process to make
+        // a new sample sheet for the aggregate process
+        crCount.out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
+            it[2].remove('sample_id')
+            values = it[2].values().join(',')
+            return [it[0], it[1], values].join(',')
+        }.collectFile(
+            name: 'molecule_info.csv',
+            newLine: true,
+            seed: "sample_id,molecule_h5," + keys.join(',')
+        ).set { moleculeInfo }
 
-    aggregate(moleculeInfo)
+        aggregate(moleculeInfo)
+    }
 }
