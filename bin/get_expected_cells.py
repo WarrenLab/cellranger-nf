@@ -10,10 +10,10 @@ import argparse
 import csv
 
 
-def dict_csv_reader_type(filename: str) -> csv.DictReader:
+def dict_csv_reader_type(filename: str) -> dict[str, str]:
     """Opens a csv.DictReader given a filename."""
     with open(filename, "r") as csv_file:
-        return csv.DictReader(csv_file)
+        return next(csv.DictReader(csv_file))
 
 
 def parse_args():
@@ -28,7 +28,7 @@ def parse_args():
 
 def main():
     args = parse_args() 
-    print(next(args.metrics_summary)["Estimated Number of Cells"].replace(",", ""))
+    print(args.metrics_summary["Estimated Number of Cells"].replace(",", ""))
 
 
 if __name__ == "__main__":
