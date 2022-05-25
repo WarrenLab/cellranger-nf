@@ -8,9 +8,10 @@ marks in its output csvs.
 
 import argparse
 import csv
+from typing import Dict
 
 
-def dict_csv_reader_type(filename: str) -> dict[str, str]:
+def dict_csv_reader_type(filename: str) -> Dict[str, str]:
     """Opens a csv.DictReader given a filename."""
     with open(filename, "r") as csv_file:
         return next(csv.DictReader(csv_file))
