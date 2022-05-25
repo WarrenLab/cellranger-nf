@@ -87,7 +87,7 @@ process cellBender {
 }
 
 process makeCellbenderAggregationTable {
-    publishdir 'cellbender', mode: 'copy'
+    publishDir 'cellbender', mode: 'copy'
 
     input:
     file(sampleSheetCsv)
