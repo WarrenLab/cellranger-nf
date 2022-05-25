@@ -72,7 +72,7 @@ process cellBender {
     publishDir 'cellbender', mode: 'copy'
 
     input:
-    tuple val(id), file("*.${id}.h5")
+    tuple val(id), file(inputFiles)
 
     output:
     file("${id}.cellbender_filtered.h5")
