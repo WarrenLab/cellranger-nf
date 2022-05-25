@@ -82,7 +82,7 @@ process cellBender {
         --input raw_feature_bc_matrix.${id}.h5 \
         --output ${id}.cellbender.h5 \
         --cuda \
-        --expected-cells \$(cut -f1 -d, metrics_summary.${id}.csv | tail -1)
+        --expected-cells \$(get_expected_cells.py metrics_summary.${id}.csv)
     """
 }
 
