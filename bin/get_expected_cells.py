@@ -28,7 +28,7 @@ def parse_args():
 
 def main():
     args = parse_args() 
-    print(args.metrics_summary["Estimated Number of Cells"].replace(",", ""))
+    print(next(args.metrics_summary)["Estimated Number of Cells"].replace(",", ""))
 
 
 if __name__ == "__main__":
