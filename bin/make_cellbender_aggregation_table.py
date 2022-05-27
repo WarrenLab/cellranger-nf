@@ -57,7 +57,7 @@ def main():
 
     metrics_summaries_dict = dict(args.metrics_summaries)
 
-    output_keys = list(args.sample_sheet[0].keys()) + ["num_cells", "confident_pct"]
+    output_keys = list(args.sample_sheet.fieldnames) + ["num_cells", "confident_pct"]
     dict_writer = csv.DictWriter(sys.stdout, output_keys)
     dict_writer.write_header()
 
