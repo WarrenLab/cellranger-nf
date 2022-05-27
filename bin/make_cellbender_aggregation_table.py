@@ -16,8 +16,7 @@ metrics_summary_filename_re = re.compile(r"metrics_summary.(\S*).csv")
 
 def dict_csv_reader_type(filename: str) -> csv.DictReader:
     """Opens a csv.DictReader given a filename."""
-    with open(filename, "r") as csv_file:
-        return csv.DictReader(csv_file)
+    return csv.DictReader(open(filename, "r"))
 
 
 def metrics_summary_type(filename: str) -> tuple[str, csv.DictReader]:
