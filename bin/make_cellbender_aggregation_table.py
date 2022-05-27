@@ -68,7 +68,7 @@ def main():
         sample_entry["confident_pct"] = float(
             sample_metrics["Reads Mapped Confidently to Transcriptome"][:-1]
         )
-        dict_writer.write_row(sample_entry)
+        dict_writer.writerow(sample_entry)
 
 
 if __name__ == "__main__":
