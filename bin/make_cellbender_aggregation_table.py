@@ -61,7 +61,7 @@ def main():
     dict_writer.writeheader()
 
     for sample_entry in args.sample_sheet:
-        sample_metrics = metrics_summaries_dict[sample_entry["sample_id"]]
+        sample_metrics = next(metrics_summaries_dict[sample_entry["sample_id"]])
         sample_entry["num_cells"] = int(
             sample_metrics["Estimated Number of Cells"].replace(",", "")
         )
