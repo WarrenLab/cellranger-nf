@@ -37,7 +37,7 @@ def metrics_summary_type(filename: str) -> tuple[str, csv.DictReader]:
 
 
 def parse_args():
-    parser = argparse.Parser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "sample_sheet",
         type=dict_csv_reader_type,
