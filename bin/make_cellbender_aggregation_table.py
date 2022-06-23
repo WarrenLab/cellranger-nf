@@ -9,7 +9,7 @@ import argparse
 import csv
 import re
 import sys
-
+from typing import Tuple
 
 metrics_summary_filename_re = re.compile(r"metrics_summary.(\S*).csv")
 
@@ -19,7 +19,7 @@ def dict_csv_reader_type(filename: str) -> csv.DictReader:
     return csv.DictReader(open(filename, "r"))
 
 
-def metrics_summary_type(filename: str) -> tuple[str, csv.DictReader]:
+def metrics_summary_type(filename: str) -> Tuple[str, csv.DictReader]:
     """
     Given the filename of a metrics_summary.{id}.csv output from
     CellRanger, output the tuple
