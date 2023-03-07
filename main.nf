@@ -19,23 +19,19 @@ params.ref_dir = '/path/to/cellranger/ref'
 // C5,control
 // C6,treatment
 params.sampleSheet = 'samples.csv'
-// set the --nuclei argument to include introns for nucelus preps
-additionalArgs = ""
-if (params.nuclei)
-    additionalArgs += " --include-introns"
-
 params.cellbender = false
 
 fastqs_dir = file(params.fastqs_dir)
 ref_dir = file(params.ref_dir)
 
 process crCount {
-    publishDir 'molecule_info', mode: 'copy'
+    publishDir 'molecule_info'
 
     input:
     val id
 
     output:
+    tuple val(id), file("molecule_info.${id}.h5")
     tuple val(id), file("*.${id}.*")
 
     """
@@ -119,15 +115,15 @@ workflow {
     }
 
     if (params.cellbender) {
-        cellBender(crCount.out)
+        cellBender(crCount.out[1])
         makeCellbenderAggregationTable(
             file(params.sampleSheet),
-            crCount.out.collect { it[1] }
+            crCount.out[1].collect { it[1] }
         )
     } else {
         // use the sample sheet and the output of the count process to make
         // a new sample sheet for the aggregate process
-        crCount.out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
+        crCount[0].out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
             it[2].remove('sample_id')
             values = it[2].values().join(',')
             return [it[0], it[1], values].join(',')

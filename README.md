@@ -12,6 +12,10 @@ This pipeline now supports using [CellBender][cb] to filter the CellRanger
 output. If you would like to use this functionality, you will need to have
 CellBender installed in a conda environment.
 
+*N.B.* You do not need to clone this repository or otherwise download the code
+in it to run the pipeline. Nextflow takes care of pulling the pipeline from git
+when you run it.
+
 ## Configuration
 There is a sample configuration file that works for running this pipeline on
 Lewis included in this package (`nextflow.config`). If you're running this on
@@ -53,7 +57,6 @@ nextflow run WarrenLab/cellranger-nf -latest \
     --fastqs_dir /path/to/directory/containing/fastqs/ \
     --ref_dir /path/to/directory/containing/cellranger/reference/ \
     --sampleSheet samples.csv \
-    --nuclei # only if this is a single nucleus rather than single cell library \
     --cellbender # only if you want to run CellBender filtering
 ```
 
