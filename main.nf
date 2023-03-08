@@ -31,7 +31,7 @@ process crCount {
     val id
 
     output:
-    tuple val(id), file("molecule_info.${id}.h5")
+    tuple(val(id), file("molecule_info.${id}.h5")), emit: moleculeInfo
     tuple val(id), file("*.${id}.*")
 
     """
@@ -123,7 +123,7 @@ workflow {
     } else {
         // use the sample sheet and the output of the count process to make
         // a new sample sheet for the aggregate process
-        crCount[0].out.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
+        crCount[0].out.moleculeInfo.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
             it[2].remove('sample_id')
             values = it[2].values().join(',')
             return [it[0], it[1], values].join(',')
