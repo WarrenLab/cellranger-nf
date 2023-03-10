@@ -24,16 +24,18 @@ params.cellbender = false
 fastqs_dir = file(params.fastqs_dir)
 ref_dir = file(params.ref_dir)
 
-process crCount {
+process CR_COUNT {
     publishDir 'molecule_info'
 
     input:
-    val id
+    tuple(val(id), val(expectedCells))
 
     output:
-    tuple(val(id), file("molecule_info.${id}.h5")), emit: moleculeInfo
-    tuple val(id), file("*.${id}.*")
+    tuple(val(id), path("molecule_info.${id}.h5")), emit: moleculeInfo
+    tuple(val(id), path("*.${id}.*")), emit: allFiles
 
+    script:
+    if (expectedCells > 0) additionalArgs = "--expect-cells $expectedCells"
     """
     cellranger count \
         --id=${id} \
@@ -50,47 +52,59 @@ process crCount {
     """
 }
 
-process aggregate {
+process CR_AGGREGATE {
     publishDir 'aggregated', mode: 'copy'
 
     input:
-    file "molecule_info.csv"
+    path("molecule_info.csv")
 
     output:
-    file "aggregated/outs"
+    path("aggregated/outs")
 
     """
     cellranger aggr --id=aggregated --csv=molecule_info.csv
     """
 }
 
-process cellBender {
+process GET_CR_CELLS_ESTIMATE {
+    input:
+    tuple val(id), path(inputFiles)
+
+    output:
+    tuple val(id), val(expectedCells)
+
+    """
+    get_expected_cells.py metrics_summary.${id}.csv
+    """
+}
+
+process CELLBENDER {
     publishDir 'cellbender', mode: 'copy'
 
     input:
-    tuple val(id), file(inputFiles)
+    tuple val(id), path(inputFiles), val(expectedCells)
 
     output:
-    file("${id}.cellbender_filtered.h5")
+    path("${id}.cellbender_filtered.h5")
 
     """
     cellbender remove-background \
         --input raw_feature_bc_matrix.${id}.h5 \
         --output ${id}.cellbender.h5 \
         --cuda \
-        --expected-cells \$(get_expected_cells.py metrics_summary.${id}.csv)
+        --expected-cells $expectedCells
     """
 }
 
-process makeCellbenderAggregationTable {
+process MAKE_AGGREGATION_TABLE {
     publishDir 'cellbender', mode: 'copy'
 
     input:
-    file(sampleSheetCsv)
-    file(allMetricsSummaries)
+    path(sampleSheetCsv)
+    path(allMetricsSummaries)
 
     output:
-    file("aggregation_table.csv")
+    path("aggregation_table.csv")
 
     """
     make_cellbender_aggregation_table.py \
@@ -101,38 +115,63 @@ process makeCellbenderAggregationTable {
 }
 
 workflow {
+    // extract the header from the sample sheet
+    def keys
+    new File(params.sampleSheet).withReader {
+        keys = it.readLine().split(',').drop(1)
+    }
+
     // read the sample sheet
     sampleSheet = Channel
         .fromPath(params.sampleSheet)
         .splitCsv(header:true)
+
     // run the count process on a list of library IDs
-    crCount(sampleSheet.map { it.sample_id })
-    
-    // extract the header from the sample sheet
-    def keys
-    new File(params.sampleSheet).withReader { 
-        keys = it.readLine().split(',').drop(1)
+    if (keys.contains("cell_count")) {
+        CR_COUNT(sampleSheet.map { tuple(it.sample_id, it.cell_count) })
+    } else {
+        CR_COUNT(sampleSheet.map { tuple(it.sample_id, -1) })
     }
 
     if (params.cellbender) {
-        cellBender(crCount.out[1])
-        makeCellbenderAggregationTable(
+        // if cell count estimates were given to the pipeline, use those
+        if (keys.contains("cell_count")) {
+            CELLBENDER(
+                CR_COUNT.out.allFiles.join(
+                    sampleSheet.map { tuple(it.sample_id, it.cell_count) }
+                )
+            )
+        }
+
+        // if no cell count estimates were given to the pipeline, use
+        // CellRanger's estimates
+        else {
+            GET_CR_CELLS_ESTIMATE(CR_COUNT.out.allFiles)
+            CELLBENDER(
+                CR_COUNT.out.allFiles.join(GET_CR_CELLS_ESTIMATE.out)
+            )
+        }
+
+        MAKE_AGGREGATION_TABLE(
             file(params.sampleSheet),
-            crCount.out[1].collect { it[1] }
+            CR_COUNT.out.allFiles.collect { it[1] }
         )
+
     } else {
         // use the sample sheet and the output of the count process to make
         // a new sample sheet for the aggregate process
-        crCount[0].out.moleculeInfo.join(sampleSheet.map { tuple(it.sample_id, it) }).map {
-            it[2].remove('sample_id')
-            values = it[2].values().join(',')
-            return [it[0], it[1], values].join(',')
-        }.collectFile(
-            name: 'molecule_info.csv',
-            newLine: true,
-            seed: "sample_id,molecule_h5," + keys.join(',')
-        ).set { moleculeInfo }
+        CR_COUNT[0].out.moleculeInfo
+            .join( sampleSheet.map { tuple(it.sample_id, it) })
+            .map {
+                it[2].remove('sample_id')
+                values = it[2].values().join(',')
+                return [it[0], it[1], values].join(',') }
+            .collectFile(
+                name: 'molecule_info.csv',
+                newLine: true,
+                seed: "sample_id,molecule_h5," + keys.join(','))
+            .set { moleculeInfo }
 
-        aggregate(moleculeInfo)
+        CR_AGGREGATE(moleculeInfo)
     }
 }
