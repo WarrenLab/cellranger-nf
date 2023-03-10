@@ -31,7 +31,7 @@ process CR_COUNT {
     tuple(val(id), val(expectedCells))
 
     output:
-    tuple(val(id), path("molecule_info.${id}.h5")), emit: moleculeInfo
+    tuple(val(id), path "molecule_info.${id}.h5"), emit: moleculeInfo
     tuple(val(id), path("*.${id}.*")), emit: allFiles
 
     """
