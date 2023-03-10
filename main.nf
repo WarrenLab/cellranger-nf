@@ -34,8 +34,6 @@ process CR_COUNT {
     tuple(val(id), path("molecule_info.${id}.h5")), emit: moleculeInfo
     tuple(val(id), path("*.${id}.*")), emit: allFiles
 
-    script:
-    if (expectedCells > 0) additionalArgs = "--expect-cells $expectedCells"
     """
     cellranger count \
         --id=${id} \
@@ -44,7 +42,8 @@ process CR_COUNT {
         --transcriptome=${ref_dir} \
         --localcores=${task.cpus} \
         --localmem=${(task.memory.toGiga() * 0.9).intValue()} \
-        --disable-ui ${additionalArgs}
+        --disable-ui
+        ${expectedCells > 0 ? "--expect-cells $expectedCells" : ""}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
     ln -s \$PWD/${id}/outs/raw_feature_bc_matrix.h5 raw_feature_bc_matrix.${id}.h5
     ln -s \$PWD/${id}/outs/web_summary.html web_summary.${id}.html
