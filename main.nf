@@ -25,8 +25,6 @@ fastqs_dir = file(params.fastqs_dir)
 ref_dir = file(params.ref_dir)
 
 process CR_COUNT {
-    publishDir 'molecule_info'
-
     input:
     tuple(val(id), val(expectedCells))
 
@@ -52,8 +50,6 @@ process CR_COUNT {
 }
 
 process CR_AGGREGATE {
-    publishDir 'aggregated', mode: 'copy'
-
     input:
     path("molecule_info.csv")
 
@@ -70,16 +66,14 @@ process GET_CR_CELLS_ESTIMATE {
     tuple val(id), path(inputFiles)
 
     output:
-    tuple val(id), val(expectedCells)
+    tuple val(id), env(expectedCells)
 
     """
-    get_expected_cells.py metrics_summary.${id}.csv
+    expectedCells=\$(get_expected_cells.py metrics_summary.${id}.csv)
     """
 }
 
 process CELLBENDER {
-    publishDir 'cellbender', mode: 'copy'
-
     input:
     tuple val(id), path(inputFiles), val(expectedCells)
 
@@ -96,8 +90,6 @@ process CELLBENDER {
 }
 
 process MAKE_AGGREGATION_TABLE {
-    publishDir 'cellbender', mode: 'copy'
-
     input:
     path(sampleSheetCsv)
     path(allMetricsSummaries)
