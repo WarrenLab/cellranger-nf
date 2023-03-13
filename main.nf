@@ -40,7 +40,7 @@ process CR_COUNT {
         --transcriptome=${ref_dir} \
         --localcores=${task.cpus} \
         --localmem=${(task.memory.toGiga() * 0.9).intValue()} \
-        --disable-ui
+        --disable-ui \
         ${expectedCells > 0 ? "--expect-cells $expectedCells" : ""}
     ln -s \$PWD/${id}/outs/molecule_info.h5 molecule_info.${id}.h5
     ln -s \$PWD/${id}/outs/raw_feature_bc_matrix.h5 raw_feature_bc_matrix.${id}.h5
@@ -119,7 +119,7 @@ workflow {
 
     // run the count process on a list of library IDs
     if (keys.contains("cell_count")) {
-        CR_COUNT(sampleSheet.map { tuple(it.sample_id, it.cell_count) })
+        CR_COUNT(sampleSheet.map { tuple(it.sample_id, (it.cell_count as Integer)) })
     } else {
         CR_COUNT(sampleSheet.map { tuple(it.sample_id, -1) })
     }
@@ -151,7 +151,7 @@ workflow {
     } else {
         // use the sample sheet and the output of the count process to make
         // a new sample sheet for the aggregate process
-        CR_COUNT[0].out.moleculeInfo
+        CR_COUNT.out.moleculeInfo
             .join( sampleSheet.map { tuple(it.sample_id, it) })
             .map {
                 it[2].remove('sample_id')
